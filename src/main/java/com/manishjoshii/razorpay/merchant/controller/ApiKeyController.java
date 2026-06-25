@@ -2,7 +2,7 @@ package com.manishjoshii.razorpay.merchant.controller;
 
 import com.manishjoshii.razorpay.merchant.dto.request.CreateApiKeyRequest;
 import com.manishjoshii.razorpay.merchant.dto.response.ApiKeyResponse;
-import com.manishjoshii.razorpay.merchant.dto.response.CreateApiKeyResponse;
+import com.manishjoshii.razorpay.merchant.dto.response.ApiKeyCreateResponse;
 import com.manishjoshii.razorpay.merchant.service.ApiKeyService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +21,7 @@ public class ApiKeyController {
     private final ApiKeyService apiKeyService;
 
     @PostMapping
-    public ResponseEntity<CreateApiKeyResponse> createApiKey(@PathVariable UUID merchantId, @Valid @RequestBody CreateApiKeyRequest request) {
+    public ResponseEntity<ApiKeyCreateResponse> createApiKey(@PathVariable UUID merchantId, @Valid @RequestBody CreateApiKeyRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(apiKeyService.create(merchantId, request));
     }
 
@@ -37,7 +37,7 @@ public class ApiKeyController {
     }
 
     @PostMapping("/{keyId}/rotate")
-    public ResponseEntity<CreateApiKeyResponse> rotateKey(@PathVariable UUID merchantId, @PathVariable UUID keyId) {
+    public ResponseEntity<ApiKeyCreateResponse> rotateKey(@PathVariable UUID merchantId, @PathVariable UUID keyId) {
         return ResponseEntity.status(200).body(apiKeyService.rotate(merchantId, keyId));
     }
 }

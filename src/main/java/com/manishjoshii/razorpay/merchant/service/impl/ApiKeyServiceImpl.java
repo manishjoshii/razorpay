@@ -4,11 +4,11 @@ import com.manishjoshii.razorpay.common.exceptions.ResourceNotFoundException;
 import com.manishjoshii.razorpay.common.util.RandomizerUtil;
 import com.manishjoshii.razorpay.merchant.dto.request.CreateApiKeyRequest;
 import com.manishjoshii.razorpay.merchant.dto.response.ApiKeyResponse;
-import com.manishjoshii.razorpay.merchant.dto.response.CreateApiKeyResponse;
+import com.manishjoshii.razorpay.merchant.dto.response.ApiKeyCreateResponse;
 import com.manishjoshii.razorpay.merchant.entity.ApiKey;
 import com.manishjoshii.razorpay.merchant.entity.Merchant;
+import com.manishjoshii.razorpay.merchant.mapper.ApiKeyMapper;
 import com.manishjoshii.razorpay.merchant.repository.ApiKeyRepository;
-import com.manishjoshii.razorpay.merchant.repository.AppUserRepository;
 import com.manishjoshii.razorpay.merchant.repository.MerchantRepository;
 import com.manishjoshii.razorpay.merchant.service.ApiKeyService;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,11 +27,11 @@ public class ApiKeyServiceImpl implements ApiKeyService {
 
     private final ApiKeyRepository apiKeyRepository;
     private final MerchantRepository merchantRepository;
-    private final AppUserRepository appUserRepository;
+    private final ApiKeyMapper apiKeyMapper;
 
     @Override
     @Transactional
-    public CreateApiKeyResponse create(UUID merchantId, CreateApiKeyRequest request) {
+    public ApiKeyCreateResponse create(UUID merchantId, CreateApiKeyRequest request) {
         Merchant merchant = merchantRepository.findById(merchantId).orElseThrow(() -> new ResourceNotFoundException("merchant", merchantId));
 
         String keyId = "rzp_" + request.environment().name().toLowerCase() + "_" + RandomizerUtil.randomBase64(24);
@@ -45,21 +45,12 @@ public class ApiKeyServiceImpl implements ApiKeyService {
                 .build();
 
         apiKey = apiKeyRepository.save(apiKey);
-        return new CreateApiKeyResponse(apiKey.getId(), apiKey.getKeyId(), rawSecret, apiKey.getEnvironment());
+        return new ApiKeyCreateResponse(apiKey.getId(), apiKey.getKeyId(), rawSecret, apiKey.getEnvironment(), apiKey.getCreatedAt(), apiKey.getUpdatedAt());
     }
 
     @Override
     public List<ApiKeyResponse> getApiKeyListByMerchant(UUID merchantId) {
-        return apiKeyRepository.findByMerchantId(merchantId).stream()
-                .map(apiKey -> new ApiKeyResponse(
-                        apiKey.getId(),
-                        apiKey.getKeyId(),
-                        apiKey.getEnvironment(),
-                        apiKey.isEnabled(),
-                        apiKey.getLastUsedAt(),
-                        null
-                ))
-                .toList();
+        return apiKeyMapper.toResponseList(apiKeyRepository.findByMerchantId(merchantId));
     }
 
     @Override
@@ -74,10 +65,12 @@ public class ApiKeyServiceImpl implements ApiKeyService {
 
     @Override
     @Transactional
-    public CreateApiKeyResponse rotate(UUID merchantId, UUID keyId) {
+    public ApiKeyCreateResponse rotate(UUID merchantId, UUID keyId) {
         ApiKey apiKey = apiKeyRepository.findById(keyId)
                 .filter(k -> k.getMerchant().getId().equals(merchantId))
                 .orElseThrow(() -> new ResourceNotFoundException("ApiKey", keyId));
+
+        if (!apiKey.isEnabled()) throw new RuntimeException("ApiKey is disabled");
 
         String newRawSecret = RandomizerUtil.randomBase64(40);
         apiKey.setPreviousKeySecretHash(apiKey.getKeySecretHash());
@@ -86,6 +79,6 @@ public class ApiKeyServiceImpl implements ApiKeyService {
         apiKey.setGracePeriodExpiresAt(LocalDateTime.now().plusHours(24)); // 24 hours grace period
         apiKey = apiKeyRepository.save(apiKey);
 
-        return new CreateApiKeyResponse(apiKey.getId(), apiKey.getKeyId(), newRawSecret, apiKey.getEnvironment());
+        return new ApiKeyCreateResponse(apiKey.getId(), apiKey.getKeyId(), newRawSecret, apiKey.getEnvironment(), apiKey.getCreatedAt(), apiKey.getUpdatedAt());
     }
 }

@@ -11,7 +11,8 @@ public record ApiKeyResponse(
         Environment environment,
         boolean enabled,
         LocalDateTime lastUsedAt,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        LocalDateTime updatedAt
 ) {
 
 }
