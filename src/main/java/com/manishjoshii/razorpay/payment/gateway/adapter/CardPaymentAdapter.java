@@ -12,4 +12,9 @@ public class CardPaymentAdapter implements PaymentAdapter {
     public PaymentResult initiate(PaymentRequest request) {
         return null;
     }
+
+    @Override
+    public PaymentResult capture(UUID paymentId) {
+        return null;
+    }
 }
