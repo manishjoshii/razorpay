@@ -2,8 +2,14 @@ package com.manishjoshii.razorpay.common.exceptions.helpers;
 
 import com.manishjoshii.razorpay.common.exceptions.DuplicateResourceException;
 import com.manishjoshii.razorpay.common.exceptions.ResourceNotFoundException;
+
+import jakarta.servlet.http.HttpServletRequest;
+
+import java.util.List;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -20,5 +26,15 @@ public class GlobalExceptionHandler {
         String errorCode = ex.getResourceName().toUpperCase() + "_NOT_FOUND";
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(ErrorResponse.of(errorCode, ex.getMessage()));
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException ex, HttpServletRequest request) {
+        List<ErrorResponse.FieldError> fieldErrors = ex.getBindingResult().getFieldErrors().stream()
+                .map(error -> new ErrorResponse.FieldError(error.getField(), error.getDefaultMessage()))
+                .toList();
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ErrorResponse.of("VALIDATION_FAILED", "Validation failed for request to " + request.getRequestURI(), fieldErrors));
     }
 }
