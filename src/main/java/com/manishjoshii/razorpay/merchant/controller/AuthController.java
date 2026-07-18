@@ -1,13 +1,13 @@
 package com.manishjoshii.razorpay.merchant.controller;
 
+import com.manishjoshii.razorpay.merchant.dto.request.LoginRequest;
 import com.manishjoshii.razorpay.merchant.dto.request.MerchantSignupRequest;
+import com.manishjoshii.razorpay.merchant.dto.response.LoginResponse;
 import com.manishjoshii.razorpay.merchant.dto.response.MerchantResponse;
-import com.manishjoshii.razorpay.merchant.entity.AppUser;
 import com.manishjoshii.razorpay.merchant.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -25,6 +25,13 @@ public class AuthController {
     public ResponseEntity<MerchantResponse> signup(@RequestBody @Valid MerchantSignupRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(
                 authService.signup(request)
+        );
+    }
+
+        @PostMapping("/login")
+    public ResponseEntity<LoginResponse> login(@RequestBody @Valid LoginRequest request) {
+        return ResponseEntity.status(HttpStatus.OK).body(
+                authService.login(request)
         );
     }
 }
