@@ -21,6 +21,6 @@ public record PaymentProcessorRequest(
     }
 
     public static PaymentProcessorRequest nonCard(UUID paymentId, PaymentMethod method, Money amount, Map<String, Object> details) {
-        return new PaymentProcessorRequest(UUID.randomUUID(), paymentId, PaymentMethod.CARD, amount, null, null, details);
+        return new PaymentProcessorRequest(UUID.randomUUID(), paymentId, method, amount, null, null, details);
     }
 }
