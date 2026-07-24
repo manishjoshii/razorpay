@@ -2,6 +2,7 @@ package com.manishjoshii.razorpay.merchant.service.impl;
 
 import com.manishjoshii.razorpay.common.exceptions.ResourceNotFoundException;
 import com.manishjoshii.razorpay.common.util.RandomizerUtil;
+import com.manishjoshii.razorpay.merchant.cache.ApiKeyCache;
 import com.manishjoshii.razorpay.merchant.dto.request.CreateApiKeyRequest;
 import com.manishjoshii.razorpay.merchant.dto.response.ApiKeyResponse;
 import com.manishjoshii.razorpay.merchant.dto.response.ApiKeyCreateResponse;
@@ -11,6 +12,7 @@ import com.manishjoshii.razorpay.merchant.mapper.ApiKeyMapper;
 import com.manishjoshii.razorpay.merchant.repository.ApiKeyRepository;
 import com.manishjoshii.razorpay.merchant.repository.MerchantRepository;
 import com.manishjoshii.razorpay.merchant.service.ApiKeyService;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +30,8 @@ public class ApiKeyServiceImpl implements ApiKeyService {
     private final ApiKeyRepository apiKeyRepository;
     private final MerchantRepository merchantRepository;
     private final ApiKeyMapper apiKeyMapper;
+    private final BCryptPasswordEncoder  BCRYPT = new BCryptPasswordEncoder();
+    private final ApiKeyCache apiKeyCache;
 
     @Override
     @Transactional
@@ -40,7 +44,7 @@ public class ApiKeyServiceImpl implements ApiKeyService {
         ApiKey apiKey = ApiKey.builder()
                 .merchant(merchant)
                 .keyId(keyId)
-                .keySecretHash(rawSecret)  // TODO: Encode with BcryptPasswordHash
+                .keySecretHash(BCRYPT.encode(rawSecret))
                 .environment(request.environment())
                 .build();
 
@@ -61,6 +65,7 @@ public class ApiKeyServiceImpl implements ApiKeyService {
                 .orElseThrow(() -> new ResourceNotFoundException("ApiKey", keyId));
         apiKey.setEnabled(false);
         apiKeyRepository.save(apiKey);
+        apiKeyCache.evict(apiKey.getKeyId());
     }
 
     @Override
@@ -74,10 +79,12 @@ public class ApiKeyServiceImpl implements ApiKeyService {
 
         String newRawSecret = RandomizerUtil.randomBase64(40);
         apiKey.setPreviousKeySecretHash(apiKey.getKeySecretHash());
-        apiKey.setKeySecretHash(newRawSecret); // TODO: Encode with BcryptPasswordEncoder
+        apiKey.setKeySecretHash(BCRYPT.encode(newRawSecret));
         apiKey.setRotatedAt(LocalDateTime.now());
         apiKey.setGracePeriodExpiresAt(LocalDateTime.now().plusHours(24)); // 24 hours grace period
         apiKey = apiKeyRepository.save(apiKey);
+
+        apiKeyCache.evict(apiKey.getKeyId());
 
         return new ApiKeyCreateResponse(apiKey.getId(), apiKey.getKeyId(), newRawSecret, apiKey.getEnvironment(), apiKey.getCreatedAt(), apiKey.getUpdatedAt());
     }
