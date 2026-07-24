@@ -1,10 +1,12 @@
 package com.manishjoshii.razorpay.common.exceptions.helpers;
 
 import com.manishjoshii.razorpay.common.exceptions.DuplicateResourceException;
+import com.manishjoshii.razorpay.common.exceptions.RateLimitException;
 import com.manishjoshii.razorpay.common.exceptions.ResourceNotFoundException;
 
 import jakarta.servlet.http.HttpServletRequest;
 
+import java.time.Instant;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -36,5 +38,16 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(ErrorResponse.of("VALIDATION_FAILED", "Validation failed for request to " + request.getRequestURI(), fieldErrors));
+    }
+
+    @ExceptionHandler(RateLimitException.class)
+    public ResponseEntity<ErrorResponse> handleRateLimitException(RateLimitException ex) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header("X-Rate-Limit-Remaining", "0")
+                .header("Retry-After-Seconds", String.valueOf(ex.getRetryAfterSeconds()))
+                .header("X-Rate-Limit-Reset", String.valueOf(
+                        Instant.now().plusSeconds(ex.getRetryAfterSeconds()).getEpochSecond()
+                ))
+                .body(ErrorResponse.of("RATE_LIMIT_EXCEEDED", ex.getMessage()));
     }
 }
