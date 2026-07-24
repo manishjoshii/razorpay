@@ -3,13 +3,16 @@ package com.manishjoshii.razorpay.merchant.security;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Date;
 import java.util.UUID;
+
 import javax.crypto.SecretKey;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 
 @Component
 public class JwtUtil {
@@ -21,11 +24,7 @@ public class JwtUtil {
         return Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
     }
 
-    public String generateAccessToken(
-        String email,
-        UUID merchantId,
-        String role
-    ) {
+    public String generateAccessToken(String email, UUID merchantId, String role) {
         Instant now = Instant.now();
         return Jwts.builder()
             .subject(email)
@@ -43,5 +42,13 @@ public class JwtUtil {
             .build()
             .parseSignedClaims(accessToken)
             .getPayload();
+    }
+
+    public String extractRoles(Claims claims) {
+        return claims.get("role", String.class);
+    }
+
+    public String extractMerchantId(Claims claims) {
+        return claims.get("merchant_id", String.class);
     }
 }

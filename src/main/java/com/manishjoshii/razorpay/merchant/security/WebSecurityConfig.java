@@ -1,5 +1,8 @@
 package com.manishjoshii.razorpay.merchant.security;
 
+import lombok.RequiredArgsConstructor;
+
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -10,37 +13,53 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
+@RequiredArgsConstructor
 public class WebSecurityConfig {
 
-    private static final String[] JWT_ROUTES = {
-        "/v1/auth/**", "/v1/merchants/**", "/v1/admin/**", "/actuator/**",
-    };
-    private static final String[] SWAGGER_ROUTES = {
-        "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html"
-    };
-    private static final String[] API_KEY_ROUTES = {
-        "/v1/orders/**", "/v1/paymnets/**", "/v1/vault/**"
-    };
-    private static final String[] AUTH_ROUTES = {"/v1/auth/signup", "/v1/auth/login"};
+    private static final String[] JWT_ROUTES = {"/v1/auth/**", "/v1/merchants/**", "/v1/admin/**", "/actuator/**",};
+    private static final String[] API_KEY_ROUTES = {"/v1/orders/**", "/v1/paymnets/**", "/v1/vault/**"};
+
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final ApiKeyAuthenticationFilter apiKeyAuthenticationFilter;
 
     @Bean
     public SecurityFilterChain jwtChain(HttpSecurity http) {
         return http.securityMatcher(JWT_ROUTES)
                 .csrf(csrf -> csrf.disable())
-                .sessionManagement(
-                        session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(
-                        auth ->
-                                auth.requestMatchers(AUTH_ROUTES)
-                                        .permitAll()
-                                        .requestMatchers(SWAGGER_ROUTES)
-                                        .permitAll()
-                                        .anyRequest()
-                                        .authenticated())
-                .formLogin(formLogin -> formLogin.disable())
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/v1/auth/signup", "/v1/auth/login").permitAll()
+                        .anyRequest().authenticated())
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
+    }
+
+    @Bean
+    public SecurityFilterChain apiKeyChain(HttpSecurity http) {
+        return http.securityMatcher(API_KEY_ROUTES)
+                .csrf(csrf -> csrf.disable())
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        .anyRequest().authenticated())
+                .addFilterBefore(apiKeyAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .build();
+    }
+
+    @Bean
+    public FilterRegistrationBean<JwtAuthenticationFilter> jwtFilterRegistration(JwtAuthenticationFilter filter) {
+        FilterRegistrationBean<JwtAuthenticationFilter> registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
+    }
+
+    @Bean
+    public FilterRegistrationBean<ApiKeyAuthenticationFilter> apiKeyFilterRegistration(ApiKeyAuthenticationFilter filter) {
+        FilterRegistrationBean<ApiKeyAuthenticationFilter> registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
     }
 
     @Bean
