@@ -1,6 +1,7 @@
 package com.manishjoshii.razorpay.common.exceptions.helpers;
 
 import com.manishjoshii.razorpay.common.exceptions.DuplicateResourceException;
+import com.manishjoshii.razorpay.common.exceptions.IdempotencyConflictException;
 import com.manishjoshii.razorpay.common.exceptions.RateLimitException;
 import com.manishjoshii.razorpay.common.exceptions.ResourceNotFoundException;
 
@@ -23,6 +24,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(ErrorResponse.of(ex.getErrorCode(), ex.getMessage()));
     }
+
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleResourceNotFoundException(ResourceNotFoundException ex) {
         String errorCode = ex.getResourceName().toUpperCase() + "_NOT_FOUND";
@@ -50,4 +52,11 @@ public class GlobalExceptionHandler {
                 ))
                 .body(ErrorResponse.of("RATE_LIMIT_EXCEEDED", ex.getMessage()));
     }
+
+    @ExceptionHandler(IdempotencyConflictException.class)
+    public ResponseEntity<ErrorResponse> handleIdempotencyConflictException(IdempotencyConflictException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ErrorResponse.of("IDEMPOTENCY_CONFLICT", ex.getMessage()));
+    }
+
 }
